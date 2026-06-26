@@ -1,5 +1,4 @@
 package common;
 
-public class Node {
-    
+public record Node(String host,int port) {
 }
