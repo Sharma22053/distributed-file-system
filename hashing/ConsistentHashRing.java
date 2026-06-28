@@ -5,27 +5,26 @@
 package hashing;
 
 import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 import common.Node;
 
 public class ConsistentHashRing {
-    private ConsistentHashRing() {
+    public ConsistentHashRing() {
     }
 
     // The ring maps a hash position(String) to a Node name(String)
-    private final TreeMap<String, Node> ring = new TreeMap<>();
+    private final ConcurrentSkipListMap<String, Node> ring = new ConcurrentSkipListMap<>();
 
     public void addNode(Node node) {
-        String nodeHash = HashUtil.hash(node.host() + ":" + node.port());
-        if (ring.containsKey(nodeHash)) {
-            return;
-        }
-        ring.put(nodeHash, node);
+        String nodeHash = HashUtil.hash(node.host() + ":" + node.tcpPort());
+    
+        ring.putIfAbsent(nodeHash, node);
     }
 
     public void removeNode(Node node) {
-        String nodeHash = HashUtil.hash(node.host() + ":" + node.port());
+        String nodeHash = HashUtil.hash(node.host() + ":" + node.tcpPort());
+    
         ring.remove(nodeHash);
     }
 
