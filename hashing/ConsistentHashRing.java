@@ -4,6 +4,10 @@
  */
 package hashing;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
@@ -18,13 +22,13 @@ public class ConsistentHashRing {
 
     public void addNode(Node node) {
         String nodeHash = HashUtil.hash(node.host() + ":" + node.tcpPort());
-    
+
         ring.putIfAbsent(nodeHash, node);
     }
 
     public void removeNode(Node node) {
         String nodeHash = HashUtil.hash(node.host() + ":" + node.tcpPort());
-    
+
         ring.remove(nodeHash);
     }
 
@@ -46,7 +50,37 @@ public class ConsistentHashRing {
 
     }
 
-    public int size(){
+    public int size() {
         return ring.size();
     }
+
+    public List<Node> getReplicaNodes(String key, int replicationFactor) {
+        Set<Node> replicas = new LinkedHashSet<>();
+        
+        if (ring.isEmpty() || replicationFactor <= 0) {
+            return java.util.Collections.emptyList();
+        }
+
+        int actualFactor = Math.min(replicationFactor, ring.size());
+        String keyHash = HashUtil.hash(key);
+
+        SortedMap<String, Node> tailMap = ring.tailMap(keyHash);
+        
+        for (Node node : tailMap.values()) {
+            replicas.add(node);
+            if (replicas.size() == actualFactor) {
+                return new ArrayList<>(replicas);
+            }
+        }
+
+        for (Node node : ring.values()) {
+            replicas.add(node);
+            if (replicas.size() == actualFactor) {
+                break;
+            }
+        }
+
+        return new ArrayList<>(replicas);
+    }
+
 }

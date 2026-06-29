@@ -54,7 +54,7 @@ public class UdpMembershipBroadcaster implements AutoCloseable {
     }
 
     public void broadCastHeartBeat(Node node){
-        String payload = createMessage("JOIN", node);
+        String payload = createMessage("HEARTBEAT", node);
         sendPacket(payload);
     }
 

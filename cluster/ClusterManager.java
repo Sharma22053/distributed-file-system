@@ -1,5 +1,6 @@
 package cluster;
 
+import java.util.List;
 import java.util.Set;
 
 import common.Node;
@@ -41,5 +42,13 @@ public class ClusterManager {
 
     public int size() {
         return membershipService.size();
+    }
+
+    public List<Node> getReplicaNodes(
+            String key,
+            int replicationFactor) {
+        return consistentHashRing.getReplicaNodes(
+                key,
+                replicationFactor);
     }
 }

@@ -6,6 +6,7 @@ import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 
 import common.Node;
 import common.NodeConfig;
@@ -13,16 +14,22 @@ import membership.MembershipService;
 
 public class UdpMembershipListener implements Runnable {
     private final NodeConfig nodeConfig;
-    private final MembershipService membershipService;
+
     private DatagramSocket datagramSocket;
     private final ExecutorService workerPool;
     private volatile boolean running = true;
+    private final Consumer<Node> onNodeJoined;
+    private final Consumer<Node> onNodeLeft;
+    private final Consumer<Node> onHeartbeat;
 
-    public UdpMembershipListener(NodeConfig nodeConfig, MembershipService membershipService,
-            ExecutorService workerPool) {
+    public UdpMembershipListener(NodeConfig nodeConfig,
+            ExecutorService workerPool, Consumer<Node> onNodeJoined,
+            Consumer<Node> onNodeLeft, Consumer<Node> onHeartbeat) {
         this.nodeConfig = nodeConfig;
-        this.membershipService = membershipService;
         this.workerPool = workerPool;
+        this.onNodeJoined = onNodeJoined;
+        this.onNodeLeft = onNodeLeft;
+        this.onHeartbeat = onHeartbeat;
     }
 
     @Override
@@ -35,15 +42,9 @@ public class UdpMembershipListener implements Runnable {
 
             while (running) {
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-
-                // blocks until a packet arrives
                 datagramSocket.receive(packet);
-
-                // Extract data safely out of the buffer immediately
                 byte[] packetData = new byte[packet.getLength()];
                 System.arraycopy(packet.getData(), packet.getOffset(), packetData, 0, packet.getLength());
-                // Hand off raw data off to the thread pool instantly so the loop can resume
-                // receiving
                 workerPool.submit(() -> processPacket(packetData));
             }
         } catch (SocketException e) {
@@ -75,11 +76,20 @@ public class UdpMembershipListener implements Runnable {
             Node node = new Node(host, tcpPort);
 
             if ("JOIN".equalsIgnoreCase(command)) {
-                membershipService.addNode(node);
-                System.out.println("node joined" + node);
+
+                onNodeJoined.accept(node);
+                System.out.println("Node joined: " + node);
+
             } else if ("LEAVE".equalsIgnoreCase(command)) {
-                membershipService.removeNode(node);
-                System.out.println("node left cleanly: " + node);
+
+                onNodeLeft.accept(node);
+                System.out.println("Node left: " + node);
+                
+
+            } else if ("HEARTBEAT".equalsIgnoreCase(command)) {
+
+                onHeartbeat.accept(node);
+
             }
         } catch (Exception e) {
             System.err.println("failed to process membership packet: " + e.getMessage());

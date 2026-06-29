@@ -1,5 +1,7 @@
 package storage;
 
+import java.util.List;
+
 public class StorageManager {
     private final LocalDiskService localDiskService;
     private final FileLockManager fileLockManager;
@@ -9,45 +11,49 @@ public class StorageManager {
         this.fileLockManager = fileLockManager;
     }
 
-    public void put(String key,byte[] data){
+    public void put(String key, byte[] data) {
         var lock = fileLockManager.writeLock(key);
         lock.lock();
-        try{
+        try {
             localDiskService.put(key, data);
             System.out.println("[StorageManager] Stored key: " + key);
-        } finally{
+        } finally {
             lock.unlock();
         }
     }
 
-    public byte[] get(String key){
+    public byte[] get(String key) {
         var lock = fileLockManager.readLock(key);
         lock.lock();
-        try{
+        try {
             return localDiskService.get(key);
-        } finally{
+        } finally {
             lock.unlock();
         }
     }
 
-    public void delete(String key){
+    public void delete(String key) {
         var lock = fileLockManager.writeLock(key);
         lock.lock();
-        try{
+        try {
             localDiskService.delete(key);
-             System.out.println("[StorageManager] Deleted key: " + key);
-        } finally{
+            System.out.println("[StorageManager] Deleted key: " + key);
+        } finally {
             lock.unlock();
         }
     }
 
-    public boolean exists(String key){
+    public boolean exists(String key) {
         var lock = fileLockManager.readLock(key);
         lock.lock();
-        try{
+        try {
             return localDiskService.exists(key);
-        } finally{
+        } finally {
             lock.unlock();
         }
+    }
+
+    public List<String> listStoredKeys() {
+        return localDiskService.listStoredKeys();
     }
 }
