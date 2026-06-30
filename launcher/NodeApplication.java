@@ -1,4 +1,5 @@
 package launcher;
+
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.ExecutorService;
@@ -76,6 +77,7 @@ public class NodeApplication {
         this.failureDetector = new FailureDetector(
                 self,
                 node -> {
+                    failureDetector.onNodeLeft(node);
                     clusterManager.onNodeLeft(node);
                     rebalancingManager.rebalance();
                 },
@@ -87,13 +89,22 @@ public class NodeApplication {
 
                 // JOIN
                 node -> {
-                    clusterManager.onNodeJoined(node);
+                    boolean changed = clusterManager.onNodeJoined(node);
+
                     failureDetector.recordHeartbeat(node);
-                    rebalancingManager.rebalance();
+
+                    if (changed) {
+                        rebalancingManager.rebalance();
+                    }
                 },
                 node -> {
-                    clusterManager.onNodeLeft(node);
-                    rebalancingManager.rebalance();
+                    failureDetector.onNodeLeft(node);
+
+                    boolean changed = clusterManager.onNodeLeft(node);
+
+                    if (changed) {
+                        rebalancingManager.rebalance();
+                    }
                 },
                 node -> {
                     failureDetector.recordHeartbeat(node);

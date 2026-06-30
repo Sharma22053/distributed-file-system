@@ -69,8 +69,8 @@ public class LocalDiskService {
     }
 
     public boolean exists(String key) {
-        Path targePath = resolveSafePath(key);
-        return Files.exists(targePath);
+        Path targetPath = resolveSafePath(key);
+        return Files.exists(targetPath);
     }
 
     public List<String> listStoredKeys() {

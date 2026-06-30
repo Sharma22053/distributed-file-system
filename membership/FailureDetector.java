@@ -64,4 +64,8 @@ public class FailureDetector {
         System.out.println("[FailureDetector] Monitoring stopped cleanly.");
     }
 
+    public void onNodeLeft(Node node) {
+    lastSeenTimeStamps.remove(node);
+}
+
 }

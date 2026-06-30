@@ -10,4 +10,6 @@ public final class Constants {
 
     public static final int FAILURE_TIMEOUT = 5000;
 
+    private static final int VIRTUAL_NODE_COUNT = 100;
+
 }

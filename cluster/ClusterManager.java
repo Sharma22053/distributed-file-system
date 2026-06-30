@@ -16,16 +16,24 @@ public class ClusterManager {
         this.consistentHashRing = consistentHashRing;
     }
 
-    public synchronized void onNodeJoined(Node node) {
+    public synchronized boolean onNodeJoined(Node node) {
+        if (membershipService.contains(node)) {
+        return false;
+    }
         membershipService.addNode(node);
         consistentHashRing.addNode(node);
         System.out.println("[ClusterManager] Topology updated. Node JOINED: " + node);
+        return true;
     }
 
-    public synchronized void onNodeLeft(Node node) {
+    public synchronized boolean onNodeLeft(Node node) {
+        if (!membershipService.contains(node)) {
+        return false;
+    }
         membershipService.removeNode(node);
         consistentHashRing.removeNode(node);
         System.out.println("[ClusterManager] Topology updated. Node LEFT/FAILED: " + node);
+        return true;
     }
 
     public Node routeKey(String key) {
