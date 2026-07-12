@@ -116,19 +116,19 @@ javac -d out $(find src -name "*.java")
 ### Start Node 1
 
 ```bash
-java -cp out launcher.Main 8081 9091
+java -cp out launcher.Main 8081 9999
 ```
 
 ### Start Node 2
 
 ```bash
-java -cp out launcher.Main 8082 9092
+java -cp out launcher.Main 8082 9999
 ```
 
 ### Start Node 3
 
 ```bash
-java -cp out launcher.Main 8083 9093
+java -cp out launcher.Main 8083 9999
 ```
 
 ---
