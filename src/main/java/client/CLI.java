@@ -1,7 +1,7 @@
 package client;
 
+import java.util.List;
 import java.util.Scanner;
-
 
 public class CLI {
     private final DFSClient dfsClient;
@@ -20,10 +20,12 @@ public class CLI {
         try (Scanner scanner = new Scanner(System.in)) {
             while (running) {
                 System.out.print(ConsoleColors.CYAN + "dfs@" + nodePort + " > " + ConsoleColors.RESET);
-                if (!scanner.hasNextLine()) break;
+                if (!scanner.hasNextLine())
+                    break;
 
                 String inputLine = scanner.nextLine().trim();
-                if (inputLine.isEmpty()) continue;
+                if (inputLine.isEmpty())
+                    continue;
 
                 String[] tokens = inputLine.split("\\s+", 3);
                 String command = tokens[0].toUpperCase();
@@ -66,11 +68,13 @@ public class CLI {
                             running = false;
                             break;
                         default:
-                            System.out.println(ConsoleColors.RED + "❌ Unknown command. Type 'HELP'." + ConsoleColors.RESET);
+                            System.out.println(
+                                    ConsoleColors.RED + "❌ Unknown command. Type 'HELP'." + ConsoleColors.RESET);
                             break;
                     }
                 } catch (Exception e) {
-                    System.err.println(ConsoleColors.RED_BOLD + "⚠️ Command Error: " + e.getMessage() + ConsoleColors.RESET);
+                    System.err.println(
+                            ConsoleColors.RED_BOLD + "⚠️ Command Error: " + e.getMessage() + ConsoleColors.RESET);
                     e.printStackTrace();
                 }
             }
@@ -89,7 +93,8 @@ public class CLI {
         String dataContent = tokens[2];
 
         long startTime = System.nanoTime();
-        System.out.println(ConsoleColors.BLUE + "📤 Invoking cluster write path for key: " + key + " ..." + ConsoleColors.RESET);
+        System.out.println(
+                ConsoleColors.BLUE + "📤 Invoking cluster write path for key: " + key + " ..." + ConsoleColors.RESET);
         boolean success = dfsClient.putFile(key, dataContent);
         long endTime = System.nanoTime();
         long timeTaken = (endTime - startTime) / 1_000_000; // Convert to ms
@@ -98,8 +103,8 @@ public class CLI {
             System.out.println(ConsoleColors.GREEN_BOLD + "✔ PUT successful" + ConsoleColors.RESET);
             System.out.println("   Time Taken : " + timeTaken + " ms");
             // TODO: Fetch actual owner and replicas from backend and print:
-            // System.out.println("   Owner      : 8082");
-            // System.out.println("   Replicas   : 8084, 8081");
+            // System.out.println(" Owner : 8082");
+            // System.out.println(" Replicas : 8084, 8081");
         } else {
             System.err.println(ConsoleColors.RED_BOLD + "✘ PUT failed for key [" + key + "]." + ConsoleColors.RESET);
         }
@@ -112,11 +117,13 @@ public class CLI {
         }
 
         String key = tokens[1];
-        System.out.println(ConsoleColors.BLUE + "📥 Requesting key path mapping lookup for: " + key + "..." + ConsoleColors.RESET);
+        System.out.println(
+                ConsoleColors.BLUE + "📥 Requesting key path mapping lookup for: " + key + "..." + ConsoleColors.RESET);
         String content = dfsClient.getFile(key);
 
         if (content == null) {
-            System.out.println(ConsoleColors.RED + "✘ Key target [" + key + "] not found or currently unreachable." + ConsoleColors.RESET);
+            System.out.println(ConsoleColors.RED + "✘ Key target [" + key + "] not found or currently unreachable."
+                    + ConsoleColors.RESET);
         } else {
             System.out.println(ConsoleColors.GREEN + "✔ Key found!" + ConsoleColors.RESET);
             System.out.println("┌─────────────────────────────────────┐");
@@ -133,13 +140,16 @@ public class CLI {
         }
 
         String key = tokens[1];
-        System.out.println(ConsoleColors.BLUE + "🗑️ Requesting cluster-wide key purge for: " + key + "..." + ConsoleColors.RESET);
+        System.out.println(
+                ConsoleColors.BLUE + "🗑️ Requesting cluster-wide key purge for: " + key + "..." + ConsoleColors.RESET);
         boolean success = dfsClient.deleteFile(key);
 
         if (success) {
-            System.out.println(ConsoleColors.GREEN_BOLD + "✔ Key path [" + key + "] deleted successfully from primary owner." + ConsoleColors.RESET);
+            System.out.println(ConsoleColors.GREEN_BOLD + "✔ Key path [" + key
+                    + "] deleted successfully from primary owner." + ConsoleColors.RESET);
         } else {
-            System.err.println(ConsoleColors.RED_BOLD + "✘ Cluster failed to execute file removal command." + ConsoleColors.RESET);
+            System.err.println(
+                    ConsoleColors.RED_BOLD + "✘ Cluster failed to execute file removal command." + ConsoleColors.RESET);
         }
     }
 
@@ -156,7 +166,8 @@ public class CLI {
     }
 
     private void handleNodes() {
-        // TODO: Implement dfsClient.getActiveNodes() returning List<String> of "127.0.0.1:8081"
+        // TODO: Implement dfsClient.getActiveNodes() returning List<String> of
+        // "127.0.0.1:8081"
         System.out.println(ConsoleColors.CYAN_BOLD + "\nActive Cluster Nodes:" + ConsoleColors.RESET);
         // Example mock:
         System.out.println("  ✓ 127.0.0.1:8081");
@@ -167,7 +178,8 @@ public class CLI {
     }
 
     private void handleStatus() {
-        System.out.println(ConsoleColors.CYAN_BOLD + "\n================ Cluster Status ================" + ConsoleColors.RESET);
+        System.out.println(
+                ConsoleColors.CYAN_BOLD + "\n================ Cluster Status ================" + ConsoleColors.RESET);
         System.out.println();
         System.out.println("Self Node");
         System.out.println("---------");
@@ -175,13 +187,14 @@ public class CLI {
         System.out.println();
         System.out.println("Active Nodes");
         System.out.println("------------");
-        // TODO: Replace with actual node list from dfsClient.getActiveNodes()
-        System.out.println("  ✓ 127.0.0.1:8081");
-        System.out.println("  ✓ 127.0.0.1:8082");
-        System.out.println("  ✓ 127.0.0.1:8084");
+        List<String> activeNodes = dfsClient.getActiveNodes();
+
+        for (String node : activeNodes) {
+            System.out.println("  ✓ " + node);
+        }
         System.out.println();
+        System.out.println("Cluster Size       : " + dfsClient.getClusterSize());
         System.out.println("Replication Factor : 3");
-        System.out.println("===============================================");
         System.out.println();
     }
 
@@ -250,16 +263,26 @@ public class CLI {
     private void printHelpMenu() {
         System.out.println(ConsoleColors.CYAN_BOLD + "\nAvailable Commands" + ConsoleColors.RESET);
         System.out.println();
-        System.out.printf("  %-20s %s%n", ConsoleColors.WHITE + "PUT <key> <value>" + ConsoleColors.RESET, ConsoleColors.GREEN + "Store a value" + ConsoleColors.RESET);
-        System.out.printf("  %-20s %s%n", ConsoleColors.WHITE + "GET <key>" + ConsoleColors.RESET, ConsoleColors.GREEN + "Retrieve value" + ConsoleColors.RESET);
-        System.out.printf("  %-20s %s%n", ConsoleColors.WHITE + "DELETE <key>" + ConsoleColors.RESET, ConsoleColors.GREEN + "Delete key" + ConsoleColors.RESET);
-        System.out.printf("  %-20s %s%n", ConsoleColors.WHITE + "EXISTS <key>" + ConsoleColors.RESET, ConsoleColors.GREEN + "Check existence" + ConsoleColors.RESET);
-        System.out.printf("  %-20s %s%n", ConsoleColors.WHITE + "NODES" + ConsoleColors.RESET, ConsoleColors.GREEN + "Show active cluster members" + ConsoleColors.RESET);
-        System.out.printf("  %-20s %s%n", ConsoleColors.WHITE + "STATUS" + ConsoleColors.RESET, ConsoleColors.GREEN + "Show cluster status" + ConsoleColors.RESET);
-        System.out.printf("  %-20s %s%n", ConsoleColors.WHITE + "RING" + ConsoleColors.RESET, ConsoleColors.GREEN + "Visualize hash ring" + ConsoleColors.RESET);
-        System.out.printf("  %-20s %s%n", ConsoleColors.WHITE + "OWNER <key>" + ConsoleColors.RESET, ConsoleColors.GREEN + "Show owner & replicas" + ConsoleColors.RESET);
-        System.out.printf("  %-20s %s%n", ConsoleColors.WHITE + "FILES" + ConsoleColors.RESET, ConsoleColors.GREEN + "Show local files" + ConsoleColors.RESET);
-        System.out.printf("  %-20s %s%n", ConsoleColors.WHITE + "EXIT" + ConsoleColors.RESET, ConsoleColors.GREEN + "Shutdown node" + ConsoleColors.RESET);
+        System.out.printf("  %-20s %s%n", ConsoleColors.WHITE + "PUT <key> <value>" + ConsoleColors.RESET,
+                ConsoleColors.GREEN + "Store a value" + ConsoleColors.RESET);
+        System.out.printf("  %-20s %s%n", ConsoleColors.WHITE + "GET <key>" + ConsoleColors.RESET,
+                ConsoleColors.GREEN + "Retrieve value" + ConsoleColors.RESET);
+        System.out.printf("  %-20s %s%n", ConsoleColors.WHITE + "DELETE <key>" + ConsoleColors.RESET,
+                ConsoleColors.GREEN + "Delete key" + ConsoleColors.RESET);
+        System.out.printf("  %-20s %s%n", ConsoleColors.WHITE + "EXISTS <key>" + ConsoleColors.RESET,
+                ConsoleColors.GREEN + "Check existence" + ConsoleColors.RESET);
+        System.out.printf("  %-20s %s%n", ConsoleColors.WHITE + "NODES" + ConsoleColors.RESET,
+                ConsoleColors.GREEN + "Show active cluster members" + ConsoleColors.RESET);
+        System.out.printf("  %-20s %s%n", ConsoleColors.WHITE + "STATUS" + ConsoleColors.RESET,
+                ConsoleColors.GREEN + "Show cluster status" + ConsoleColors.RESET);
+        System.out.printf("  %-20s %s%n", ConsoleColors.WHITE + "RING" + ConsoleColors.RESET,
+                ConsoleColors.GREEN + "Visualize hash ring" + ConsoleColors.RESET);
+        System.out.printf("  %-20s %s%n", ConsoleColors.WHITE + "OWNER <key>" + ConsoleColors.RESET,
+                ConsoleColors.GREEN + "Show owner & replicas" + ConsoleColors.RESET);
+        System.out.printf("  %-20s %s%n", ConsoleColors.WHITE + "FILES" + ConsoleColors.RESET,
+                ConsoleColors.GREEN + "Show local files" + ConsoleColors.RESET);
+        System.out.printf("  %-20s %s%n", ConsoleColors.WHITE + "EXIT" + ConsoleColors.RESET,
+                ConsoleColors.GREEN + "Shutdown node" + ConsoleColors.RESET);
         System.out.println();
     }
 }
