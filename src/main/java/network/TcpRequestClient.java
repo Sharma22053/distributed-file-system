@@ -12,12 +12,32 @@ import common.Node;
 public class TcpRequestClient {
     private static final int CONNECTION_TIMEOUT_MS = 3000;
 
-    public boolean put(Node target, String key, byte[] data) {
-        try (Socket socket = new Socket();
-                DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-                DataInputStream in = new DataInputStream(socket.getInputStream())) {
-            socket.connect(new InetSocketAddress(target.host(),target.tcpPort()),CONNECTION_TIMEOUT_MS);
+    public boolean replicaPut(Node target, String key, byte[] data){
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(target.host(), target.tcpPort()), CONNECTION_TIMEOUT_MS);
             socket.setSoTimeout(CONNECTION_TIMEOUT_MS);
+            DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+            DataInputStream in = new DataInputStream(socket.getInputStream());
+            out.writeUTF(MessageType.REPLICA_PUT.name());
+            out.writeUTF(key);
+            out.writeInt(data.length);
+            out.write(data);
+            out.flush();
+            String response = in.readUTF();
+            return "OK".equalsIgnoreCase(response);
+        } catch (IOException e) {
+            System.err.println("[TcpRequestClient] PUT failed on node " + target + " for key: " + key + ". Error: "
+                    + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean put(Node target, String key, byte[] data) {
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(target.host(), target.tcpPort()), CONNECTION_TIMEOUT_MS);
+            socket.setSoTimeout(CONNECTION_TIMEOUT_MS);
+            DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+            DataInputStream in = new DataInputStream(socket.getInputStream());
             out.writeUTF(MessageType.PUT.name());
             out.writeUTF(key);
             out.writeInt(data.length);
@@ -33,12 +53,13 @@ public class TcpRequestClient {
     }
 
     public byte[] get(Node target, String key) {
-        try (Socket socket = new Socket();
-                DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-                DataInputStream in = new DataInputStream(socket.getInputStream())) {
-            socket.connect(new InetSocketAddress(target.host(),target.tcpPort()),CONNECTION_TIMEOUT_MS);
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(target.host(), target.tcpPort()), CONNECTION_TIMEOUT_MS);
             socket.setSoTimeout(CONNECTION_TIMEOUT_MS);
 
+            DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+
+            DataInputStream in = new DataInputStream(socket.getInputStream());
 
             out.writeUTF(MessageType.GET.name());
             out.writeUTF(key);
@@ -67,13 +88,11 @@ public class TcpRequestClient {
     }
 
     public boolean delete(Node target, String key) {
-        try (Socket socket = new Socket();
-                DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-                DataInputStream in = new DataInputStream(socket.getInputStream())) {
-            socket.connect(new InetSocketAddress(target.host(),target.tcpPort()),CONNECTION_TIMEOUT_MS);
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(target.host(), target.tcpPort()), CONNECTION_TIMEOUT_MS);
             socket.setSoTimeout(CONNECTION_TIMEOUT_MS);
-
-
+            DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+            DataInputStream in = new DataInputStream(socket.getInputStream());
             out.writeUTF(MessageType.DELETE.name());
             out.writeUTF(key);
             out.flush();
@@ -89,13 +108,11 @@ public class TcpRequestClient {
     }
 
     public boolean exists(Node target, String key) {
-       try (Socket socket = new Socket();
-                DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-                DataInputStream in = new DataInputStream(socket.getInputStream())) {
-            socket.connect(new InetSocketAddress(target.host(),target.tcpPort()),CONNECTION_TIMEOUT_MS);
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(target.host(), target.tcpPort()), CONNECTION_TIMEOUT_MS);
             socket.setSoTimeout(CONNECTION_TIMEOUT_MS);
-
-
+            DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+            DataInputStream in = new DataInputStream(socket.getInputStream());
             out.writeUTF(MessageType.EXISTS.name());
             out.writeUTF(key);
             out.flush();

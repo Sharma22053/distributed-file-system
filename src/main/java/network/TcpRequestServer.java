@@ -65,6 +65,9 @@ public class TcpRequestServer implements Runnable {
                 case EXISTS:
                     handleExists(in, out);
                     break;
+                case REPLICA_PUT:
+                    handleReplicaPut(in,out);
+                    break;
                 default:
                     out.writeUTF("ERROR: unsupported TCP operation");
                     break;
@@ -73,6 +76,22 @@ public class TcpRequestServer implements Runnable {
         } catch (IOException e) {
             System.err.println("[TcpRequestServer] Failed handling client request: " + e.getMessage());
         }
+    }
+
+    private void handleReplicaPut(DataInputStream in,DataOutputStream out) throws IOException{
+        String key = in.readUTF();
+        int dataLength = in.readInt();
+        if (dataLength < 0) {
+            out.writeUTF("ERROR: Invalid payload length");
+            return;
+        }
+
+        byte[] data = new byte[dataLength];
+
+        in.readFully(data);
+
+        storageManager.put(key, data);
+        out.writeUTF("OK");
     }
 
     private void handlePut(DataInputStream in, DataOutputStream out) throws IOException {

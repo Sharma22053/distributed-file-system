@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import cluster.ClusterManager;
 import common.Node;
 import network.TcpRequestClient;
+import replication.ReplicationManager;
 import storage.StorageManager;
 
 public class RebalancingManager {
@@ -28,9 +29,7 @@ public class RebalancingManager {
 
     public void rebalance() {
         System.out.println("[RebalancingManager] Starting local cluster rebalancing scan...");
-
         List<String> localKeys = storageManager.listStoredKeys();
-
         int examined = 0;
         int migrated = 0;
         int failed = 0;
@@ -39,29 +38,24 @@ public class RebalancingManager {
         for (String key : localKeys) {
             examined++;
             System.out.println("[RebalancingManager] Checking key: " + key);
-
             Node correctOwner = clusterManager.routeKey(key);
             if (correctOwner == null) {
                 System.err.println("[RebalancingManager] No owner found for key: " + key);
                 failed++;
                 continue;
             }
-
             System.out.println("[RebalancingManager] Current owner: " + self + " New owner: " + correctOwner);
             if (self.equals(correctOwner)) {
                 skipped++;
                 continue;
             }
-
             byte[] fileData = storageManager.get(key);
             if (fileData == null) {
                 System.err.println("[RebalancingManager] Error: Key data missing on disk while reading: " + key);
                 failed++;
                 continue;
             }
-
-            boolean migrationSuccess = tcpRequestClient.put(correctOwner, key, fileData);
-
+            boolean migrationSuccess = tcpRequestClient.replicaPut(correctOwner, key, fileData);
             if (migrationSuccess) {
                 storageManager.delete(key);
                 migrated++;
@@ -86,53 +80,33 @@ public class RebalancingManager {
     }
 
     public void retryFailedMigrations() {
-
-    if (retryQueue.isEmpty()) {
-        return;
-    }
-
-    System.out.println(
-            "[RebalancingManager] Retrying failed migrations...");
-
-    int retryCount = retryQueue.size();
-
-    for (int i = 0; i < retryCount; i++) {
-
-        String key = retryQueue.poll();
-
-        if (key == null) {
-            continue;
+        if (retryQueue.isEmpty()) {
+            return;
         }
-
-        Node correctOwner = clusterManager.routeKey(key);
-
-        if (correctOwner == null || correctOwner.equals(self)) {
-            continue;
-        }
-
-        byte[] data = storageManager.get(key);
-
-        if (data == null) {
-            continue;
-        }
-
-        boolean success =
-                tcpRequestClient.put(correctOwner, key, data);
-
-        if (success) {
-
-            storageManager.delete(key);
-
-            System.out.println(
-                    "[RebalancingManager] Retry succeeded for key: " + key);
-
-        } else {
-
-            retryQueue.offer(key);
-
-            System.err.println(
-                    "[RebalancingManager] Retry failed again for key: " + key);
+        System.out.println("[RebalancingManager] Retrying failed migrations...");
+        int retryCount = retryQueue.size();
+        for (int i = 0; i < retryCount; i++) {
+            String key = retryQueue.poll();
+            if (key == null) {
+                continue;
+            }
+            Node correctOwner = clusterManager.routeKey(key);
+            if (correctOwner == null || correctOwner.equals(self)) {
+                continue;
+            }
+            byte[] data = storageManager.get(key);
+            if (data == null) {
+                continue;
+            }
+            boolean success = tcpRequestClient.replicaPut(correctOwner, key, data);
+            if (success) {
+                storageManager.delete(key);
+                  System.out.println( "[RebalancingManager] Retry succeeded for key: " + key);
+            } else {
+                retryQueue.offer(key);
+                System.err.println(
+                        "[RebalancingManager] Retry failed again for key: " + key);
+            }
         }
     }
-}
 }

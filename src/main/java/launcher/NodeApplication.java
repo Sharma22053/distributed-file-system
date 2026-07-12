@@ -28,11 +28,8 @@ import client.DFSClient;
 import cluster.ClusterManager;
 
 public class NodeApplication {
-    // Structural Thread Pools (Enforcing strict constraint of exactly 2 pools)
     private ExecutorService networkExecutor;
     private ScheduledExecutorService schedulerExecutor;
-
-    // Component references for runtime shutdown lifecycle tracking
     private TcpRequestServer tcpServer;
     private UdpMembershipListener udpListener;
     private UdpMembershipBroadcaster udpBroadcaster;
@@ -46,11 +43,12 @@ public class NodeApplication {
         String host = "127.0.0.1";
         int tcpPort = args.length > 0 ? Integer.parseInt(args[0]) : 8081;
         int udpPort = args.length > 1 ? Integer.parseInt(args[1]) : 9091;
-        Path storageDir = Paths.get("./dfs_storage_node1");
+        Path storageDir = Paths.get("./dfs_storage_" + tcpPort);
         int replicationFactor = 3;
 
         Node self = new Node(host, tcpPort);
         NodeConfig nodeConfig = new NodeConfig(self, udpPort, storageDir);
+        System.out.println("[NodeApplication] Storage Directory: " + storageDir.toAbsolutePath());
 
         int availableProcessors = Runtime.getRuntime().availableProcessors();
         this.networkExecutor = Executors.newFixedThreadPool(availableProcessors);
@@ -66,12 +64,12 @@ public class NodeApplication {
 
         TcpRequestClient tcpClient = new TcpRequestClient();
 
-        this.tcpServer = new TcpRequestServer(nodeConfig,storageManager, networkExecutor,replicationManager);
+        this.replicationManager = new ReplicationManager(clusterManager, tcpClient, replicationFactor);
         this.udpBroadcaster = new UdpMembershipBroadcaster(udpPort);
 
-        ReplicationManager replicationManager = new ReplicationManager(clusterManager, tcpClient, replicationFactor);
         DistributedStorageService distributedStorageService = new DistributedStorageService(
-                self, clusterManager, storageManager, replicationManager, tcpClient);
+                self, clusterManager, storageManager, this.replicationManager, tcpClient);
+        this.tcpServer = new TcpRequestServer(nodeConfig, storageManager, networkExecutor, this.replicationManager);
 
         RebalancingManager rebalancingManager = new RebalancingManager(self, clusterManager, storageManager, tcpClient);
 
@@ -81,6 +79,9 @@ public class NodeApplication {
                     failureDetector.onNodeLeft(node);
                     clusterManager.onNodeLeft(node);
                     rebalancingManager.rebalance();
+                    rebalancingManager.retryFailedMigrations();
+                    replicationManager.ensureReplication(storageManager);
+
                 },
                 schedulerExecutor);
 
@@ -97,16 +98,16 @@ public class NodeApplication {
                     if (changed) {
                         rebalancingManager.rebalance();
                         rebalancingManager.retryFailedMigrations();
+                        replicationManager.ensureReplication(storageManager);
                     }
                 },
                 node -> {
-                    failureDetector.onNodeLeft(node);
-
                     boolean changed = clusterManager.onNodeLeft(node);
-
+                    failureDetector.onNodeLeft(node);
                     if (changed) {
                         rebalancingManager.rebalance();
                         rebalancingManager.retryFailedMigrations();
+                        replicationManager.ensureReplication(storageManager);
                     }
                 },
                 node -> {
@@ -120,8 +121,8 @@ public class NodeApplication {
         }));
 
         networkExecutor.submit(tcpServer);
-
         networkExecutor.submit(udpListener);
+
         clusterManager.onNodeJoined(self);
         udpBroadcaster.broadcastJoin(self);
 

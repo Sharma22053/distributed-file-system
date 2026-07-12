@@ -5,6 +5,7 @@ import java.util.List;
 import cluster.ClusterManager;
 import common.Node;
 import network.TcpRequestClient;
+import storage.StorageManager;
 
 public class ReplicationManager {
     private final ClusterManager clusterManager;
@@ -38,7 +39,7 @@ public class ReplicationManager {
             targetsAttempted++;
 
             System.out.println("[ReplicationManager] Attempting backup replication to node: " + targetNode + " for key: " + key);
-            boolean success = tcpRequestClient.put(targetNode, key, data);
+            boolean success = tcpRequestClient.replicaPut(targetNode, key, data);
 
             if (success) {
                 successCount++;
@@ -52,4 +53,15 @@ public class ReplicationManager {
         
         return successCount;
     }
+    public void ensureReplication(StorageManager storageManager) {
+
+    for(String key : storageManager.listStoredKeys()) {
+
+        byte[] data = storageManager.get(key);
+
+        if(data != null){
+            replicate(key,data);
+        }
+    }
+}
 }

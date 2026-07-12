@@ -52,9 +52,7 @@ public class ClusterManager {
         return membershipService.size();
     }
 
-    public List<Node> getReplicaNodes(
-            String key,
-            int replicationFactor) {
+    public List<Node> getReplicaNodes(String key,int replicationFactor) {
         return consistentHashRing.getReplicaNodes(
                 key,
                 replicationFactor);
