@@ -133,8 +133,8 @@ public class NodeApplication {
         System.out.println(
                 "[NodeApplication] Bootstrapping completed successfully. Launching client console interface...");
 
-        DFSClient dfsClient = new DFSClient(distributedStorageService);
-        CLI cli = new CLI(dfsClient);
+        DFSClient dfsClient = new DFSClient(distributedStorageService,clusterManager,storageManager,hashRing);
+        CLI cli = new CLI(dfsClient,tcpPort);
         cli.start();
 
     }

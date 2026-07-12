@@ -87,4 +87,8 @@ public class ConsistentHashRing {
         return new LinkedHashSet<>(ring.values()).size();
     }
 
+    public SortedMap<String, Node> getRingSnapshot() {
+        return Collections.unmodifiableSortedMap(ring);
+    }
+
 }
