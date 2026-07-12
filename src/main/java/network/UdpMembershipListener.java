@@ -3,6 +3,7 @@ package network;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
@@ -10,7 +11,6 @@ import java.util.function.Consumer;
 
 import common.Node;
 import common.NodeConfig;
-import membership.MembershipService;
 
 public class UdpMembershipListener implements Runnable {
     private final NodeConfig nodeConfig;
@@ -35,7 +35,9 @@ public class UdpMembershipListener implements Runnable {
     @Override
     public void run() {
         try {
-            datagramSocket = new DatagramSocket(nodeConfig.udpPort());
+            datagramSocket = new DatagramSocket(null);
+            datagramSocket.setReuseAddress(true);
+            datagramSocket.bind(new InetSocketAddress(nodeConfig.udpPort()));
             System.out.println("udp membership listener started on :" + nodeConfig.udpPort());
 
             byte[] buffer = new byte[1024];
@@ -65,15 +67,20 @@ public class UdpMembershipListener implements Runnable {
     private void processPacket(byte[] data) {
         try {
             String message = new String(data, StandardCharsets.UTF_8).trim();
-
+            if (!message.startsWith("HEARTBEAT")) {
+                System.out.println("[DEBUG] Received UDP: " + message);
+            }
             String[] tokens = message.trim().split("\\s+");
-            if (tokens.length < 4)
+            if (tokens.length < 3)
                 return;
 
             String command = tokens[0];
             String host = tokens[1];
             int tcpPort = Integer.parseInt(tokens[2]);
             Node node = new Node(host, tcpPort);
+            if (node.equals(nodeConfig.node())) {
+                return;
+            }
 
             if ("JOIN".equalsIgnoreCase(command)) {
 
@@ -84,7 +91,6 @@ public class UdpMembershipListener implements Runnable {
 
                 onNodeLeft.accept(node);
                 System.out.println("Node left: " + node);
-                
 
             } else if ("HEARTBEAT".equalsIgnoreCase(command)) {
 
@@ -98,7 +104,9 @@ public class UdpMembershipListener implements Runnable {
 
     public void stop() {
         running = false;
-        datagramSocket.close();
-        workerPool.shutdown();
+
+        if (datagramSocket != null && !datagramSocket.isClosed()) {
+            datagramSocket.close();
+        }
     }
 }

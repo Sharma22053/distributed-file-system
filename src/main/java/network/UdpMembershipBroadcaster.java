@@ -21,7 +21,7 @@ public class UdpMembershipBroadcaster implements AutoCloseable {
         try {
             this.datagramSocket = new DatagramSocket();
             this.datagramSocket.setBroadcast(true);
-            this.destinationAddress = InetAddress.getByName("224.0.0.1"); 
+            this.destinationAddress = InetAddress.getByName("255.255.255.255");
         } catch (SocketException e) {
             throw new RuntimeException("failed to open the persistent UDP broadcast socket", e);
         } catch (UnknownHostException e) {
@@ -44,6 +44,13 @@ public class UdpMembershipBroadcaster implements AutoCloseable {
             byte[] buffer = payload.getBytes(StandardCharsets.UTF_8);
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, destinationAddress, targetUdpPort);
             datagramSocket.send(packet);
+            if (!payload.startsWith("HEARTBEAT")) {
+                System.out.println("[UDP Broadcaster] Sent: " + payload
+                        + " -> "
+                        + destinationAddress
+                        + ":"
+                        + targetUdpPort);
+            }
         } catch (IOException e) {
             System.err.println("Error sending UDP payload [" + payload + "]: " + e.getMessage());
         }
@@ -53,7 +60,7 @@ public class UdpMembershipBroadcaster implements AutoCloseable {
         return command + " " + node.host() + " " + node.tcpPort();
     }
 
-    public void broadCastHeartBeat(Node node){
+    public void broadCastHeartBeat(Node node) {
         String payload = createMessage("HEARTBEAT", node);
         sendPacket(payload);
     }
