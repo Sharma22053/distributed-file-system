@@ -212,6 +212,7 @@ RebalancingManager
 
 ```bash
 java -cp "lib/*:out" org.junit.platform.console.ConsoleLauncher --scan-classpath
+```
 
 ## Current Limitations
 
@@ -253,7 +254,3 @@ This project helped me understand:
 - Distributed systems fundamentals
 
 ---
-
-## License
-
-MIT License
